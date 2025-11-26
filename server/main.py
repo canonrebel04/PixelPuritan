@@ -29,12 +29,23 @@ logger.info(f"Loading Model: {MODEL_NAME}...")
 device = 0 if torch.cuda.is_available() else -1
 logger.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
 
-try:
-    classifier = pipeline("image-classification", model=MODEL_NAME, device=device)
-    logger.info("✅ Model loaded successfully.")
-except Exception as e:
-    logger.error(f"❌ Failed to load model: {e}")
-    raise e
+classifier = None
+if os.getenv("PIXELPURITAN_DUMMY_MODEL") == "1":
+    logger.info("Using dummy classifier for tests (PIXELPURITAN_DUMMY_MODEL=1)")
+    def _dummy_classifier(image):
+        # Return a stable output
+        return [
+            {"label": "safe", "score": 0.99},
+            {"label": "nsfw", "score": 0.01},
+        ]
+    classifier = _dummy_classifier
+else:
+    try:
+        classifier = pipeline("image-classification", model=MODEL_NAME, device=device)
+        logger.info("✅ Model loaded successfully.")
+    except Exception as e:
+        logger.error(f"❌ Failed to load model: {e}")
+        raise e
 
 # Prometheus metrics
 requests_total = Counter(

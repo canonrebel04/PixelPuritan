@@ -29,6 +29,7 @@ jobs:
         run: |
           . server/.venv/bin/activate
           python -m pip install pytest pytest-cov
+          export PIXELPURITAN_DUMMY_MODEL=1
           PYTHONPATH=$PWD pytest -q server/tests
       - name: Test client
         run: |
