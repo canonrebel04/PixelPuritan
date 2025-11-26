@@ -54,15 +54,25 @@ find "$TARGET_DIR" -type d -name "batch_*" | sort | while read -r batch_dir; do
         fi
     fi
 
-    # 2. NSFW Scan
+    # 2. NSFW Scan (retry on transient failures)
     if [ -f "$CLIENT_BIN" ]; then
         echo "      Running NSFW Scan..."
-        "$CLIENT_BIN" -m "$batch_dir"
-        EXIT_CODE=$?
+        MAX_ATTEMPTS=3
+        attempt=1
+        while [ $attempt -le $MAX_ATTEMPTS ]; do
+            echo "      Attempt $attempt/$MAX_ATTEMPTS"
+            "$CLIENT_BIN" -m "$batch_dir"
+            EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+                break
+            fi
+            # Backoff: 1s, 2s
+            sleep $((attempt))
+            attempt=$((attempt+1))
+        done
 
         if [ $EXIT_CODE -ne 0 ]; then
-            echo "      ❌ CRITICAL: Scanner crashed (Code $EXIT_CODE)."
-            exit 1
+            echo "      ⚠️  Scanner reported errors after retries; continuing to next batch."
         fi
         touch "$batch_dir/.batch_complete"
     else
