@@ -2,6 +2,8 @@ import os
 import shutil
 import asyncio
 import aiohttp
+import async_timeout
+import time
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -18,22 +20,43 @@ CONCURRENT_REQUESTS = 4
 app = typer.Typer(help="PixelPuritan Client", add_completion=False)
 console = Console()
 
+REQUEST_TIMEOUT_SECONDS = 30
+MAX_RETRIES = 3
+RETRY_BACKOFF_BASE = 0.6  # exponential backoff base
+
 async def scan_file(session, file_path: Path, semaphore):
     async with semaphore:
         try:
             with open(file_path, 'rb') as f:
-                data = {'file': f}
-                async with session.post(API_URL, data=data) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return {
-                            "path": file_path,
-                            "is_nsfw": result.get("is_nsfw", False),
-                            "confidence": result.get("confidence_percentage", 0),
-                            "error": None
-                        }
-                    else:
-                        return {"path": file_path, "error": f"HTTP {response.status}"}
+                # Proper multipart form with filename and content-type
+                file_tuple = (file_path.name, f.read(), 'image/*')
+                form = aiohttp.FormData()
+                form.add_field('file', file_tuple[1], filename=file_tuple[0], content_type=file_tuple[2])
+
+                # Retry with exponential backoff on transient failures
+                for attempt in range(1, MAX_RETRIES + 1):
+                    try:
+                        async with async_timeout.timeout(REQUEST_TIMEOUT_SECONDS):
+                            async with session.post(API_URL, data=form) as response:
+                                if response.status == 200:
+                                    result = await response.json()
+                                    return {
+                                        "path": file_path,
+                                        "is_nsfw": result.get("is_nsfw", False),
+                                        "confidence": result.get("confidence_percentage", 0),
+                                        "error": None
+                                    }
+                                else:
+                                    # 5xx considered transient; 4xx treated as permanent
+                                    if 500 <= response.status < 600 and attempt < MAX_RETRIES:
+                                        await asyncio.sleep(RETRY_BACKOFF_BASE ** attempt)
+                                        continue
+                                    return {"path": file_path, "error": f"HTTP {response.status}"}
+                    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                        if attempt < MAX_RETRIES:
+                            await asyncio.sleep(RETRY_BACKOFF_BASE ** attempt)
+                            continue
+                        return {"path": file_path, "error": f"network/timeout: {e}"}
         except Exception as e:
             return {"path": file_path, "error": str(e)}
 
@@ -134,10 +157,19 @@ def scan(
     )
     console.print(grid)
 
+    # Write errors.csv for per-file errors without failing the whole batch
     if err > 0:
-         raise typer.Exit(code=1) # Signal error to orchestrator if individual files failed?
-         # Actually, individual file errors shouldn't crash batcher, but whole API failure should.
-         # We handled whole API failure in the try/except block above.
+        errors_path = (path.parent if path.is_file() else path) / "errors.csv"
+        try:
+            with open(errors_path, 'w') as ef:
+                ef.write("file,error\n")
+                for r in results:
+                    if r.get("error"):
+                        ef.write(f"{r['path']},{r['error']}\n")
+            console.print(f"[yellow]Wrote per-file errors to {errors_path}[/yellow]")
+        except Exception as e:
+            console.print(f"[red]Failed writing errors.csv: {e}[/red]")
+        # Do not exit nonzero for per-file errors; orchestrator should continue
 
 if __name__ == "__main__":
     app()
