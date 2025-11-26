@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import List
 
 # --- Configuration ---
-API_URL = "http://localhost:8000/v1/detect"
+API_URL = os.getenv("PIXELPURITAN_API_URL", "http://localhost:8000/v1/detect")
 # REDUCED CONCURRENCY to prevent OOM on GTX 1060 / ViT Model
-CONCURRENT_REQUESTS = 4
+CONCURRENT_REQUESTS = int(os.getenv("PIXELPURITAN_CONCURRENCY", "4"))
 
 app = typer.Typer(help="PixelPuritan Client", add_completion=False)
 console = Console()

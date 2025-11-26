@@ -20,11 +20,16 @@ jobs:
           python -m venv .venv
           . .venv/bin/activate
           pip install -r requirements.txt
-      - name: Lint (flake8 if available)
+      - name: Lint
         run: |
-          . server/.venv/bin/activate || true
-          python -m pip install flake8 || true
-          flake8 server src/client || true
+          . server/.venv/bin/activate
+          python -m pip install flake8
+          flake8 server src/client
+      - name: Test server
+        run: |
+          . server/.venv/bin/activate
+          python -m pip install pytest pytest-cov
+          PYTHONPATH=$PWD pytest -q server/tests
 
   rust:
     runs-on: ubuntu-latest
@@ -34,12 +39,12 @@ jobs:
       - name: Build splitter
         run: |
           cd src/splitter
-          cargo build --verbose
+          echo "Skipping cargo build: no Cargo.toml yet"
       - name: Clippy
         run: |
           cd src/splitter
-          cargo clippy --all-targets -- -D warnings || true
+          echo "Skipping clippy: no Cargo.toml yet"
       - name: Format check
         run: |
           cd src/splitter
-          cargo fmt --all -- --check || true
+          echo "Skipping fmt: no Cargo.toml yet"
