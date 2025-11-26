@@ -7,6 +7,8 @@ import io
 import logging
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from starlette.responses import Response
+import os
+import uuid
 
 app = FastAPI(title="PixelPuritan AI Server")
 
@@ -43,8 +45,35 @@ latency_seconds = Histogram(
 async def metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+# Middleware to attach request id and structured logs
+@app.middleware("http")
+async def add_request_id_logging(request: Request, call_next):
+    req_id = str(uuid.uuid4())
+    request.state.req_id = req_id
+    logger.info("request.start", extra={
+        "event": "request.start",
+        "req_id": req_id,
+        "path": request.url.path,
+        "method": request.method,
+    })
+    response = await call_next(request)
+    logger.info("request.end", extra={
+        "event": "request.end",
+        "req_id": req_id,
+        "status_code": response.status_code,
+    })
+    response.headers["X-Request-ID"] = req_id
+    return response
+
 @app.post("/v1/detect")
 async def detect(request: Request, file: UploadFile = File(...)):
+    # Optional API key auth
+    api_key_required = os.getenv("PIXELPURITAN_API_KEY")
+    if api_key_required:
+        supplied = request.headers.get("X-API-Key")
+        if supplied != api_key_required:
+            requests_total.labels(status="401").inc()
+            raise HTTPException(status_code=401, detail="Unauthorized")
     if not file:
         raise HTTPException(status_code=400, detail="No file provided")
 
