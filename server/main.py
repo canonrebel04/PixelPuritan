@@ -1,7 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse
-from transformers import pipeline
-import torch
 from PIL import Image
 import io
 import logging
@@ -27,8 +25,7 @@ logger.handlers = [handler]
 # Using ViT Base NSFW Detector (Better accuracy than ResNet)
 MODEL_NAME = "AdamCodd/vit-base-nsfw-detector"
 logger.info(f"Loading Model: {MODEL_NAME}...")
-device = 0 if torch.cuda.is_available() else -1
-logger.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
+device = -1
 
 classifier = None
 if os.getenv("PIXELPURITAN_DUMMY_MODEL") == "1":
@@ -42,6 +39,11 @@ if os.getenv("PIXELPURITAN_DUMMY_MODEL") == "1":
     classifier = _dummy_classifier
 else:
     try:
+        # Lazy import heavy libs only when real model is needed
+        from transformers import pipeline
+        import torch
+        device = 0 if torch.cuda.is_available() else -1
+        logger.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
         classifier = pipeline("image-classification", model=MODEL_NAME, device=device)
         logger.info("✅ Model loaded successfully.")
     except Exception as e:
