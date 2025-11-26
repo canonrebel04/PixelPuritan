@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from transformers import pipeline
+import torch
 from PIL import Image
 import io
 import logging
@@ -15,9 +16,11 @@ logger = logging.getLogger(__name__)
 # Using ViT Base NSFW Detector (Better accuracy than ResNet)
 MODEL_NAME = "AdamCodd/vit-base-nsfw-detector"
 logger.info(f"Loading Model: {MODEL_NAME}...")
+device = 0 if torch.cuda.is_available() else -1
+logger.info(f"Using device: {'GPU' if device == 0 else 'CPU'}")
 
 try:
-    classifier = pipeline("image-classification", model=MODEL_NAME)
+    classifier = pipeline("image-classification", model=MODEL_NAME, device=device)
     logger.info("✅ Model loaded successfully.")
 except Exception as e:
     logger.error(f"❌ Failed to load model: {e}")
@@ -29,9 +32,14 @@ async def detect(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="No file provided")
 
     try:
-        # Read Image
+        # Basic validation: size limit (e.g., 20MB) and MIME
         contents = await file.read()
+        if len(contents) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="File too large (max 20MB)")
+        # Read Image safely
         image = Image.open(io.BytesIO(contents))
+        image.verify()  # validate integrity
+        image = Image.open(io.BytesIO(contents)).convert('RGB')  # reopen after verify
 
         # Inference
         results = classifier(image)
