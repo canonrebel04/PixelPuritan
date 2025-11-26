@@ -133,6 +133,15 @@ The client will automatically send `X-API-Key` if the same env var is set.
 
 The server exposes Prometheus metrics at `GET /metrics`, including request counters and inference latency histogram. Point Prometheus at `http://<server>:8000/metrics`.
 
+## 🧩 CPU vs GPU Compose
+
+- **CPU (Default):** `server/compose.yml` builds a CPU-only image using `python:3.10-slim` and installs PyTorch (CPU).
+- **GPU (Optional):** `server/compose.gpu.yml` requests GPU via the NVIDIA runtime. To use GPU, you must:
+   - Install NVIDIA drivers and the Docker NVIDIA runtime.
+   - Use a CUDA-enabled base image and PyTorch with CUDA in your local environment.
+   - Review NVIDIA's EULA; avoid publishing images containing proprietary CUDA libraries unless redistribution is permitted.
+
+
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and workflow. Please follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

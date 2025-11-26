@@ -129,6 +129,16 @@ async def detect(request: Request, file: UploadFile = File(...)):
             "confidence_percentage": confidence
         }
         requests_total.labels(status="200").inc()
+        logger.info(
+            "inference.success",
+            extra={
+                "event": "inference.success",
+                "req_id": getattr(request.state, "req_id", None),
+                "file_name": file.filename,
+                "is_nsfw": is_nsfw,
+                "confidence": confidence,
+            },
+        )
         return resp
 
     except Exception as e:

@@ -1,0 +1,19 @@
+services:
+  app:
+    image: pixelpuritan/gpu:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    runtime: nvidia
+    # Note: For GPU builds, you may need a CUDA-enabled base image and PyTorch with CUDA.
+    # Be aware of NVIDIA's EULA and redistribution constraints when publishing images.
