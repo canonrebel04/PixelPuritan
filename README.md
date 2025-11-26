@@ -141,6 +141,27 @@ The server exposes Prometheus metrics at `GET /metrics`, including request count
    - Use a CUDA-enabled base image and PyTorch with CUDA in your local environment.
    - Review NVIDIA's EULA; avoid publishing images containing proprietary CUDA libraries unless redistribution is permitted.
 
+## 🚦 Rate Limiting
+
+The server enforces an optional per-IP rate limit via a token bucket:
+
+- `PIXELPURITAN_RATE_LIMIT_RPS` (default `5`) — tokens refilled per second
+- `PIXELPURITAN_RATE_LIMIT_BURST` (default `10`) — maximum burst capacity
+
+When exceeded, the server returns `429 Too Many Requests`.
+
+## 🧪 Benchmarking
+
+Use the async benchmark tool to measure throughput and latency:
+
+```bash
+export PIXELPURITAN_API_URL="http://localhost:8000/v1/detect"
+export BENCH_CONCURRENCY=4
+export BENCH_ROUNDS=50
+python scripts/bench_client.py
+```
+
+
 
 ## 🤝 Contributing
 
