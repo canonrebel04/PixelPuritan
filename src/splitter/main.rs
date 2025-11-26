@@ -19,10 +19,16 @@ fn main() {
     }
 
     // Collect loose files only (ignore existing batch folders)
-    let mut files: Vec<PathBuf> = fs::read_dir(path)
-    .unwrap()
-    .filter_map(|entry| entry.ok())
-    .map(|entry| entry.path())
+    let mut files: Vec<PathBuf> = match fs::read_dir(path) {
+        Ok(rd) => rd
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .collect(),
+        Err(e) => {
+            eprintln!("Failed to read directory {}: {}", source_dir, e);
+            process::exit(2);
+        }
+    };
     .filter(|p| {
         if !p.is_file() { return false; }
         if let Some(parent) = p.parent() {
