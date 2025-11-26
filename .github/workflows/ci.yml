@@ -43,13 +43,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build splitter
         run: |
-          cd src/splitter
-          echo "Skipping cargo build: no Cargo.toml yet"
+          cargo build --verbose
       - name: Clippy
         run: |
-          cd src/splitter
-          echo "Skipping clippy: no Cargo.toml yet"
+          cargo clippy --all-targets -- -D warnings
       - name: Format check
         run: |
-          cd src/splitter
-          echo "Skipping fmt: no Cargo.toml yet"
+          cargo fmt --all -- --check
+      - name: Test splitter
+        run: |
+          cargo test --tests --quiet

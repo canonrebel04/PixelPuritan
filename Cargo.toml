@@ -1,0 +1,11 @@
+[package]
+name = "pixelpuritan-splitter"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "pp-split"
+path = "src/splitter/main.rs"
+
+[dev-dependencies]
+tempfile = "3"
