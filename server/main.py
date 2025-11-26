@@ -11,6 +11,7 @@ from starlette.responses import Response
 import os
 import uuid
 import time
+import configparser
 
 app = FastAPI(title="PixelPuritan AI Server")
 
@@ -82,9 +83,19 @@ async def add_request_id_logging(request: Request, call_next):
     response.headers["X-Request-ID"] = req_id
     return response
 
+def _load_server_config():
+    cfg = configparser.ConfigParser()
+    cfg.read([
+        os.path.expanduser("~/.config/pixelpuritan/config.ini"),
+        os.path.join(os.path.dirname(__file__), "../config/defaults.ini"),
+    ])
+    rate_rps = os.getenv("PIXELPURITAN_RATE_LIMIT_RPS") or cfg.get("server", "rate_limit_rps", fallback="5")
+    rate_burst = os.getenv("PIXELPURITAN_RATE_LIMIT_BURST") or cfg.get("server", "rate_limit_burst", fallback="10")
+    api_key = os.getenv("PIXELPURITAN_API_KEY") or cfg.get("server", "api_key", fallback=None)
+    return float(rate_rps), int(rate_burst), api_key
+
 # Simple per-IP rate limiting (in-memory token bucket)
-RATE_LIMIT_RPS = float(os.getenv("PIXELPURITAN_RATE_LIMIT_RPS", "5"))
-BURST = int(os.getenv("PIXELPURITAN_RATE_LIMIT_BURST", "10"))
+RATE_LIMIT_RPS, BURST, CONFIG_API_KEY = _load_server_config()
 _buckets = {}
 
 def _allow(ip: str, now: float):
@@ -109,7 +120,7 @@ async def detect(request: Request, file: UploadFile = File(...)):
         requests_total.labels(status="429").inc()
         raise HTTPException(status_code=429, detail="Too Many Requests")
     # Optional API key auth
-    api_key_required = os.getenv("PIXELPURITAN_API_KEY")
+    api_key_required = CONFIG_API_KEY
     if api_key_required:
         supplied = request.headers.get("X-API-Key")
         if supplied != api_key_required:

@@ -1,8 +1,8 @@
-fastapi
-uvicorn[standard]
-python-multipart
-torch
-transformers
-pillow
-prometheus-client
-python-json-logger
+fastapi==0.115.2
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+torch==2.4.1
+transformers==4.44.2
+pillow==10.4.0
+prometheus-client==0.20.0
+python-json-logger==2.0.7

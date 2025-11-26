@@ -19,7 +19,8 @@ jobs:
           cd server
           python -m venv .venv
           . .venv/bin/activate
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --upgrade --progress-bar off
       - name: Lint
         run: |
           . server/.venv/bin/activate
