@@ -10,7 +10,7 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 from rich.panel import Panel
 from pathlib import Path
-from typing import List
+from typing import List, Iterable
 
 # --- Configuration ---
 API_URL = os.getenv("PIXELPURITAN_API_URL", "http://localhost:8000/v1/detect")
@@ -98,6 +98,15 @@ async def process_files(files: List[Path], move: bool):
 
     return results, safe_count, nsfw_count, error_count
 
+def write_errors_csv(base_path: Path, results: Iterable[dict]):
+    errors_path = base_path / "errors.csv"
+    with open(errors_path, 'w') as ef:
+        ef.write("file,error\n")
+        for r in results:
+            if r.get("error"):
+                ef.write(f"{r['path']},{r['error']}\n")
+    return errors_path
+
 @app.command()
 def scan(
     path: Path = typer.Argument(..., help="Path to file or directory", exists=True),
@@ -163,13 +172,9 @@ def scan(
 
     # Write errors.csv for per-file errors without failing the whole batch
     if err > 0:
-        errors_path = (path.parent if path.is_file() else path) / "errors.csv"
         try:
-            with open(errors_path, 'w') as ef:
-                ef.write("file,error\n")
-                for r in results:
-                    if r.get("error"):
-                        ef.write(f"{r['path']},{r['error']}\n")
+            base = (path.parent if path.is_file() else path)
+            errors_path = write_errors_csv(base, results)
             console.print(f"[yellow]Wrote per-file errors to {errors_path}[/yellow]")
         except Exception as e:
             console.print(f"[red]Failed writing errors.csv: {e}[/red]")

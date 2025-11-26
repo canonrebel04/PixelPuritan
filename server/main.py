@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 import io
 import logging
+from pythonjsonlogger import jsonlogger
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from starlette.responses import Response
 import os
@@ -13,8 +14,12 @@ import uuid
 app = FastAPI(title="PixelPuritan AI Server")
 
 # Logging Setup
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pixelpuritan")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s")
+handler.setFormatter(formatter)
+logger.handlers = [handler]
 
 # --- MODEL LOADING ---
 # Using ViT Base NSFW Detector (Better accuracy than ResNet)

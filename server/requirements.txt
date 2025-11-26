@@ -5,3 +5,4 @@ torch
 transformers
 pillow
 prometheus-client
+python-json-logger
