@@ -161,6 +161,23 @@ export BENCH_ROUNDS=50
 python scripts/bench_client.py
 ```
 
+If `BENCH_IMAGE` does not exist, the benchmark will auto-generate a small sample PNG (requires Pillow).
+
+## ⚙️ Configuration
+
+You can configure defaults via `~/.config/pixelpuritan/config.ini` (overridden by environment variables):
+
+```ini
+[client]
+api_url = http://localhost:8000/v1/detect
+concurrency = 4
+
+[server]
+rate_limit_rps = 5
+rate_limit_burst = 10
+```
+
+
 
 
 ## 🤝 Contributing

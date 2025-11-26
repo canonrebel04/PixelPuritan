@@ -1,4 +1,5 @@
 import os
+import configparser
 import shutil
 import asyncio
 import aiohttp
@@ -13,9 +14,17 @@ from pathlib import Path
 from typing import List, Iterable
 
 # --- Configuration ---
-API_URL = os.getenv("PIXELPURITAN_API_URL", "http://localhost:8000/v1/detect")
-# REDUCED CONCURRENCY to prevent OOM on GTX 1060 / ViT Model
-CONCURRENT_REQUESTS = int(os.getenv("PIXELPURITAN_CONCURRENCY", "4"))
+def load_config():
+    cfg = configparser.ConfigParser()
+    cfg.read([
+        os.path.expanduser("~/.config/pixelpuritan/config.ini"),
+        os.path.join(os.path.dirname(__file__), "../../config/defaults.ini"),
+    ])
+    api = os.getenv("PIXELPURITAN_API_URL") or cfg.get("client", "api_url", fallback="http://localhost:8000/v1/detect")
+    conc = os.getenv("PIXELPURITAN_CONCURRENCY") or cfg.get("client", "concurrency", fallback="4")
+    return api, int(conc)
+
+API_URL, CONCURRENT_REQUESTS = load_config()
 
 app = typer.Typer(help="PixelPuritan Client", add_completion=False)
 console = Console()

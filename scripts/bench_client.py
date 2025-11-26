@@ -3,6 +3,10 @@ import time
 import asyncio
 import aiohttp
 from pathlib import Path
+try:
+    from PIL import Image
+except Exception:
+    Image = None
 
 API_URL = os.getenv("PIXELPURITAN_API_URL", "http://localhost:8000/v1/detect")
 CONCURRENCY = int(os.getenv("BENCH_CONCURRENCY", "4"))
@@ -18,10 +22,17 @@ async def one(session, payload):
         return resp.status, time.perf_counter() - t0
 
 async def main():
-    if not Path(IMG_PATH).exists():
-        print(f"Image not found: {IMG_PATH}")
-        return
-    img_bytes = Path(IMG_PATH).read_bytes()
+    p = Path(IMG_PATH)
+    if not p.exists():
+        if Image is None:
+            print(f"Image not found and PIL unavailable: {IMG_PATH}")
+            return
+        # Generate a simple PNG
+        p.parent.mkdir(parents=True, exist_ok=True)
+        img = Image.new('RGB', (64, 64), (123, 200, 50))
+        img.save(p, format='PNG')
+        print(f"Generated sample image at {p}")
+    img_bytes = p.read_bytes()
     headers = {"X-API-Key": API_KEY} if API_KEY else {}
     form = aiohttp.FormData()
     form.add_field('file', img_bytes, filename='bench.png', content_type='image/png')
