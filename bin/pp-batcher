@@ -1,0 +1,74 @@
+#!/bin/bash
+set -o pipefail
+
+# --- Dynamic Path Resolution ---
+REAL_SCRIPT_PATH=$(realpath "$0")
+# Resolves to ~/.local/share/PixelPuritan/bin/pp-batcher, so we go up one to root
+INSTALL_ROOT="$(dirname "$(dirname "$REAL_SCRIPT_PATH")")"
+RUST_BIN="$INSTALL_ROOT/src/splitter/pp-split"
+CLIENT_BIN="$INSTALL_ROOT/bin/pp-scan"
+
+# --- Args ---
+TARGET_DIR="$1"
+USER_DEST_DIR="$2"
+
+if [ -z "$TARGET_DIR" ]; then
+    echo "Usage: pp-batcher <path_to_images> [backup_destination]"
+    exit 1
+fi
+
+if [ -z "$USER_DEST_DIR" ]; then
+    DEST_DIR="$(dirname "$TARGET_DIR")/backup_synced"
+    echo "ℹ️  No backup destination provided. Using default: $DEST_DIR"
+    mkdir -p "$DEST_DIR"
+else
+    DEST_DIR="$USER_DEST_DIR"
+fi
+
+# --- Execution ---
+echo "🔹 [PixelPuritan] Starting Splitter..."
+if [ -f "$RUST_BIN" ]; then
+    "$RUST_BIN" "$TARGET_DIR"
+else
+    echo "❌ Error: Rust binary not found at $RUST_BIN"
+    echo "   Please run ./install.sh again."
+    exit 1
+fi
+
+echo "🔹 [PixelPuritan] Iterating through batches..."
+find "$TARGET_DIR" -type d -name "batch_*" | sort | while read -r batch_dir; do
+
+    # Skip completed
+    if [ -f "$batch_dir/.batch_complete" ]; then
+        if [ -d "$batch_dir/nsfw" ] || [ -d "$batch_dir/safe" ]; then continue; fi
+    fi
+
+    echo "   👉 Processing: $(basename "$batch_dir")"
+
+    # 1. Robosync
+    if command -v robosync &> /dev/null; then
+        echo "      Running Robosync..."
+        if ! robosync "$batch_dir" "$DEST_DIR/$(basename "$batch_dir")"; then
+            echo "      ❌ Error: Robosync failed. Stopping execution."
+            exit 1
+        fi
+    fi
+
+    # 2. NSFW Scan
+    if [ -f "$CLIENT_BIN" ]; then
+        echo "      Running NSFW Scan..."
+        "$CLIENT_BIN" -m "$batch_dir"
+        EXIT_CODE=$?
+
+        if [ $EXIT_CODE -ne 0 ]; then
+            echo "      ❌ CRITICAL: Scanner crashed (Code $EXIT_CODE)."
+            exit 1
+        fi
+        touch "$batch_dir/.batch_complete"
+    else
+        echo "      ❌ Error: 'pp-scan' not found."
+        exit 1
+    fi
+done
+
+echo "✅ [PixelPuritan] All tasks complete."

@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+*.log
+.venv/
+venv/
+.env
+.env.*
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+**/.dockerignore
+**/compose.override.yml
+**/.env.docker
+
+# Node (if any helper scripts)
+node_modules/
+
+# Test/coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# Python packaging/build
+build/
+dist/
+*.egg
+.eggs/
+
+# Cache
+.cache/
+
+# Misc
+*.swp
+*.swo

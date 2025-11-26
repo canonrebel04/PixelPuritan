@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install server deps
+        run: |
+          cd server
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -r requirements.txt
+      - name: Lint (flake8 if available)
+        run: |
+          . server/.venv/bin/activate || true
+          python -m pip install flake8 || true
+          flake8 server src/client || true
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build splitter
+        run: |
+          cd src/splitter
+          cargo build --verbose
+      - name: Clippy
+        run: |
+          cd src/splitter
+          cargo clippy --all-targets -- -D warnings || true
+      - name: Format check
+        run: |
+          cd src/splitter
+          cargo fmt --all -- --check || true

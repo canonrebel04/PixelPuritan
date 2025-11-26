@@ -1,0 +1,14 @@
+services:
+  ai-server:
+    build: .
+    container_name: pixelpuritan-ai
+    ports:
+      - "8000:8000"
+    restart: always
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
