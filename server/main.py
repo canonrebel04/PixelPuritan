@@ -10,6 +10,7 @@ from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_
 from starlette.responses import Response
 import os
 import uuid
+import time
 
 app = FastAPI(title="PixelPuritan AI Server")
 
@@ -70,8 +71,32 @@ async def add_request_id_logging(request: Request, call_next):
     response.headers["X-Request-ID"] = req_id
     return response
 
+# Simple per-IP rate limiting (in-memory token bucket)
+RATE_LIMIT_RPS = float(os.getenv("PIXELPURITAN_RATE_LIMIT_RPS", "5"))
+BURST = int(os.getenv("PIXELPURITAN_RATE_LIMIT_BURST", "10"))
+_buckets = {}
+
+def _allow(ip: str, now: float):
+    bucket = _buckets.get(ip)
+    if bucket is None:
+        _buckets[ip] = {"tokens": BURST, "last": now}
+        return True
+    elapsed = now - bucket["last"]
+    # refill tokens at RATE_LIMIT_RPS
+    bucket["tokens"] = min(BURST, bucket["tokens"] + elapsed * RATE_LIMIT_RPS)
+    bucket["last"] = now
+    if bucket["tokens"] >= 1:
+        bucket["tokens"] -= 1
+        return True
+    return False
+
 @app.post("/v1/detect")
 async def detect(request: Request, file: UploadFile = File(...)):
+    # Rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    if not _allow(client_ip, time.time()):
+        requests_total.labels(status="429").inc()
+        raise HTTPException(status_code=429, detail="Too Many Requests")
     # Optional API key auth
     api_key_required = os.getenv("PIXELPURITAN_API_KEY")
     if api_key_required:
