@@ -69,7 +69,11 @@ async def process_files(files: List[Path], move: bool):
 
     console.print(Panel(f"[bold blue]PixelPuritan: Scanning {len(files)} files...[/]", border_style="blue"))
 
-    async with aiohttp.ClientSession() as session:
+    # Optional API key header
+    api_key = os.getenv("PIXELPURITAN_API_KEY")
+    headers = {"X-API-Key": api_key} if api_key else {}
+
+    async with aiohttp.ClientSession(headers=headers) as session:
         with Progress(
             SpinnerColumn(),
             TextColumn("[bold blue]{task.description}"),

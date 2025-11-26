@@ -119,6 +119,20 @@ Re-run the installer to recompile:
 
 If the scanner crashes during processing, reduce concurrency in `src/client/nsfw_tool.py`.
 
+## 🔐 Authentication (Optional)
+
+To require an API key for the server, set:
+
+```bash
+export PIXELPURITAN_API_KEY="your-secret"
+```
+
+The client will automatically send `X-API-Key` if the same env var is set.
+
+## 📈 Metrics
+
+The server exposes Prometheus metrics at `GET /metrics`, including request counters and inference latency histogram. Point Prometheus at `http://<server>:8000/metrics`.
+
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and workflow. Please follow the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
