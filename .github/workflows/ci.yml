@@ -30,6 +30,11 @@ jobs:
           . server/.venv/bin/activate
           python -m pip install pytest pytest-cov
           PYTHONPATH=$PWD pytest -q server/tests
+      - name: Test client
+        run: |
+          . server/.venv/bin/activate
+          python -m pip install pytest
+          PYTHONPATH=$PWD pytest -q src/client/tests
 
   rust:
     runs-on: ubuntu-latest

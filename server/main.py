@@ -1,16 +1,18 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse
 from transformers import pipeline
 import torch
 from PIL import Image
 import io
 import logging
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from starlette.responses import Response
 
 app = FastAPI(title="PixelPuritan AI Server")
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("pixelpuritan")
 
 # --- MODEL LOADING ---
 # Using ViT Base NSFW Detector (Better accuracy than ResNet)
@@ -26,8 +28,23 @@ except Exception as e:
     logger.error(f"❌ Failed to load model: {e}")
     raise e
 
+# Prometheus metrics
+requests_total = Counter(
+    "pp_requests_total",
+    "Total detect requests",
+    ["status"]
+)
+latency_seconds = Histogram(
+    "pp_inference_latency_seconds",
+    "Inference latency in seconds"
+)
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 @app.post("/v1/detect")
-async def detect(file: UploadFile = File(...)):
+async def detect(request: Request, file: UploadFile = File(...)):
     if not file:
         raise HTTPException(status_code=400, detail="No file provided")
 
@@ -41,8 +58,9 @@ async def detect(file: UploadFile = File(...)):
         image.verify()  # validate integrity
         image = Image.open(io.BytesIO(contents)).convert('RGB')  # reopen after verify
 
-        # Inference
-        results = classifier(image)
+        # Inference with latency measurement
+        with latency_seconds.time():
+            results = classifier(image)
 
         # Parse Results (Model returns list of dicts: [{'label': 'nsfw', 'score': 0.99}, ...])
         # We need to find the 'nsfw' score or determining label.
@@ -71,12 +89,15 @@ async def detect(file: UploadFile = File(...)):
             # Confidence is the inverse
             confidence = round((1.0 - nsfw_score) * 100, 2)
 
-        return {
+        resp = {
             "file_name": file.filename,
             "is_nsfw": is_nsfw,
             "confidence_percentage": confidence
         }
+        requests_total.labels(status="200").inc()
+        return resp
 
     except Exception as e:
         logger.error(f"Error processing image: {e}")
+        requests_total.labels(status="500").inc()
         raise HTTPException(status_code=500, detail=str(e))
