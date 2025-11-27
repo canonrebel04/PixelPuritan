@@ -3,7 +3,6 @@ import configparser
 import shutil
 import asyncio
 import aiohttp
-import async_timeout
 import time
 import typer
 from rich.console import Console
@@ -45,7 +44,7 @@ async def scan_file(session, file_path: Path, semaphore):
                 # Retry with exponential backoff on transient failures
                 for attempt in range(1, MAX_RETRIES + 1):
                     try:
-                        async with async_timeout.timeout(REQUEST_TIMEOUT_SECONDS):
+                        async with asyncio.timeout(REQUEST_TIMEOUT_SECONDS):
                             async with session.post(API_URL, data=form) as response:
                                 if response.status == 200:
                                     result = await response.json()

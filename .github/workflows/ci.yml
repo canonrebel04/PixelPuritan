@@ -35,12 +35,12 @@ jobs:
           . server/.venv/bin/activate
           python -m pip install pytest pytest-cov
           export PIXELPURITAN_DUMMY_MODEL=1
-          PYTHONPATH=$PWD pytest -q -vv server/tests
+          PYTHONPATH=${GITHUB_WORKSPACE} pytest -q -vv server/tests
       - name: Test client
         run: |
           . server/.venv/bin/activate
           python -m pip install pytest
-          PYTHONPATH=$PWD pytest -q -vv src/client/tests
+          PYTHONPATH=${GITHUB_WORKSPACE} pytest -q -vv src/client/tests
 
   rust:
     runs-on: ubuntu-latest

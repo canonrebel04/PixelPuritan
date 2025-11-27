@@ -23,23 +23,22 @@ fn main() {
         Ok(rd) => rd
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.path())
+            .filter(|p| {
+                if !p.is_file() { return false; }
+                if let Some(parent) = p.parent() {
+                    if let Some(parent_name) = parent.file_name() {
+                        let name_str = parent_name.to_string_lossy();
+                        if name_str.starts_with("batch_") { return false; }
+                    }
+                }
+                true
+            })
             .collect(),
         Err(e) => {
             eprintln!("Failed to read directory {}: {}", source_dir, e);
             process::exit(2);
         }
     };
-    .filter(|p| {
-        if !p.is_file() { return false; }
-        if let Some(parent) = p.parent() {
-            if let Some(parent_name) = parent.file_name() {
-                let name_str = parent_name.to_string_lossy();
-                if name_str.starts_with("batch_") { return false; }
-            }
-        }
-        true
-    })
-    .collect();
 
     if files.is_empty() {
         println!("No loose files found to split.");

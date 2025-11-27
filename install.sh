@@ -37,13 +37,25 @@ fi
 
 # 3. Setup Python Client Wrapper (pp-scan)
 echo -e "${BLUE}🐍 Configuring Python Client (pp-scan)...${NC}"
+
+# Check for Python dependencies
+missing_deps=()
+python3 -c "import aiohttp" 2>/dev/null || missing_deps+=("python-aiohttp")
+python3 -c "import typer" 2>/dev/null || missing_deps+=("python-typer")
+python3 -c "import rich" 2>/dev/null || missing_deps+=("python-rich")
+
+if [ ${#missing_deps[@]} -ne 0 ]; then
+    echo -e "${RED}⚠️  Missing Python dependencies: ${missing_deps[*]}${NC}"
+    echo -e "   Install with: ${GREEN}sudo pacman -S ${missing_deps[*]}${NC}"
+    exit 1
+fi
+
 chmod +x "$INSTALL_DIR/src/client/nsfw_tool.py"
 
 # Create a shim for the python tool
 cat <<EOF > "$INSTALL_DIR/bin/pp-scan"
 #!/bin/bash
 # Wrapper for PixelPuritan Client
-# Ensure dependencies are installed: pip install typer aiohttp rich
 python3 "$INSTALL_DIR/src/client/nsfw_tool.py" "\$@"
 EOF
 chmod +x "$INSTALL_DIR/bin/pp-scan"
