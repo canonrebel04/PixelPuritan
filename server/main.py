@@ -116,6 +116,9 @@ def _allow(ip: str, now: float):
 
 @app.post("/v1/detect")
 async def detect(request: Request, file: UploadFile = File(...)):
+    # Refresh config each request to honor env changes (useful in tests)
+    global RATE_LIMIT_RPS, BURST, CONFIG_API_KEY
+    RATE_LIMIT_RPS, BURST, CONFIG_API_KEY = _load_server_config()
     # Rate limiting
     client_ip = request.client.host if request.client else "unknown"
     if not _allow(client_ip, time.time()):
@@ -190,7 +193,14 @@ async def detect(request: Request, file: UploadFile = File(...)):
         )
         return resp
 
+    except HTTPException as he:
+        # Preserve intended HTTP errors (e.g., 413, 401, 429)
+        try:
+            requests_total.labels(status=str(he.status_code)).inc()
+        except Exception:
+            pass
+        raise
     except Exception as e:
         logger.error(f"Error processing image: {e}")
         requests_total.labels(status="500").inc()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal Server Error")
