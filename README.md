@@ -29,7 +29,7 @@ PixelPuritan combines the raw speed of Rust for file operations with the accurac
 - **OS**: Linux (Arch/CachyOS, Debian, Fedora)
 - **Docker**: Required for the AI Server
 - **NVIDIA GPU**: Recommended (6GB+ VRAM)
-- **Rust Toolchain**: `sudo pacman -S rustup && rustup defualt nightly` (or equivalent for your distro)
+- **Rust Toolchain**: `sudo pacman -S rustup && rustup default nightly` (or equivalent for your distro)
 - **Python**: 3.10+
 
 ### Setup
