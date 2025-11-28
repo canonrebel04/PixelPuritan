@@ -24,11 +24,15 @@ fn main() {
             .filter_map(|entry| entry.ok())
             .map(|entry| entry.path())
             .filter(|p| {
-                if !p.is_file() { return false; }
+                if !p.is_file() {
+                    return false;
+                }
                 if let Some(parent) = p.parent() {
                     if let Some(parent_name) = parent.file_name() {
                         let name_str = parent_name.to_string_lossy();
-                        if name_str.starts_with("batch_") { return false; }
+                        if name_str.starts_with("batch_") {
+                            return false;
+                        }
                     }
                 }
                 true
@@ -54,7 +58,11 @@ fn main() {
         batch_idx += 1;
     }
 
-    println!("Found {} files. Resuming split at batch_{:03}...", files.len(), batch_idx);
+    println!(
+        "Found {} files. Resuming split at batch_{:03}...",
+        files.len(),
+        batch_idx
+    );
 
     for chunk in files.chunks(chunk_size) {
         let batch_folder_name = format!("batch_{:03}", batch_idx);
