@@ -1,5 +1,9 @@
 # PixelPuritan
 
+<p align="center">
+   <img src="1.jpg" alt="PixelPuritan logo" width="240" />
+</p>
+
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![CI](https://github.com/canonrebel04/PixelPuritan/actions/workflows/ci.yml/badge.svg)
 
