@@ -1,4 +1,3 @@
-import os
 from importlib import reload
 import src.client.nsfw_tool as nsfw_tool
 

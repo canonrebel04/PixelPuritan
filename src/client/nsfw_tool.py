@@ -3,7 +3,6 @@ import configparser
 import shutil
 import asyncio
 import aiohttp
-import time
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -138,7 +137,7 @@ def scan(
     try:
         results, safe, nsfw, err = asyncio.run(process_files(files, move))
     except Exception as e:
-        console.print(f"[bold red]CRITICAL ERROR: Connection refused or API crashed.[/]")
+        console.print("[bold red]CRITICAL ERROR: Connection refused or API crashed.[/]")
         console.print(f"Details: {e}")
         raise typer.Exit(code=1)
 

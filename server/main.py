@@ -1,5 +1,4 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request
-from fastapi.responses import JSONResponse
 from PIL import Image
 import io
 import logging
@@ -151,9 +150,6 @@ async def detect(request: Request, file: UploadFile = File(...)):
         # Parse Results (Model returns list of dicts: [{'label': 'nsfw', 'score': 0.99}, ...])
         # We need to find the 'nsfw' score or determining label.
         # This specific model usually outputs labels: 'nsfw', 'normal' (or similar)
-
-        # Find best prediction
-        top_result = max(results, key=lambda x: x['score'])
 
         # Logic for AdamCodd/vit-base-nsfw-detector
         # Labels are usually 'nsfw' and 'safe' (or 'normal')
