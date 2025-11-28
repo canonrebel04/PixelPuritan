@@ -1,7 +1,7 @@
 # PixelPuritan
 
 <p align="center">
-   <img src="1.jpg" alt="PixelPuritan logo" width="240" />
+   <img src="docs/assets/logo.jpg" alt="PixelPuritan logo" width="240" />
 </p>
 
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
